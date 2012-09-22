@@ -158,8 +158,13 @@ def plot_intensity(ax, wf, slabGap, colour='blue', label=''):
     y = vf(x)
 
     ax.plot(x, y, linestyle='-', color=colour, label=label, antialiased=True, marker=None)
-    ax.set_xlim((-slabGap, slabGap))
-    ax.set_ylim((min(y) - 0.1 * abs(min(y)), max(y) + 0.1 * abs(max(y))))
+
+    #only change the axes limits if we havn't seen this object before
+    if not hasattr(ax, 'pyguide_afiemw_haveseen'):
+        ax.pyguide_afiemw_haveseen = True
+        ax.set_xlim((-slabGap, slabGap))
+        ax.set_ylim((min(y) - 0.1 * abs(min(y)), max(y) + 0.1 * abs(max(y))))
+
 
 def plot_poynting_vector():
     pass
