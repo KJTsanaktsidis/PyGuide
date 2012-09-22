@@ -336,7 +336,6 @@ class ExpLossySolver(LossySolver):
             area = ires[0]
             wavef_norm = functools.partial(wavef, A=A, B=B, C=C, D=D, kx=kx, kz=kz, g=gamma(kx), mult=1/area)
             wavefunctions.append(wavef_norm)
-        scipy.io.savemat('gheed.mat', mats)
         return wavefunctions
 
 
