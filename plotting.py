@@ -2,7 +2,9 @@ from matplotlib.figure import Figure
 from matplotlib.figure import Axes
 from matplotlib.text import Text
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from matplotlib.patches import Rectangle
 from numpy import linspace, vectorize, min, max, abs
+from scipy.misc import derivative
 
 def setup_figure_standard(title='', xlabel='', ylabel=''):
     """
@@ -65,6 +67,28 @@ def setup_figure_topbottom(title='', xlabel='', ylabel=''):
 
     fig.subplots_adjust()
     return (fig, topax, bottomax)
+
+def shade_waveguide(ax, slabGap):
+    """
+    This method adds shading to indicate the core and cladding regions of the waveguide in ax
+
+    @param ax: The axes to add teh shading to
+    @type ax: Axes
+    @param slabGap: The slab gap of the planar waveguide
+    @type slabGap: float
+    @return: None
+    """
+
+    ystart = min(ax.get_ylim())
+    yend = max(ax.get_ylim())
+    ysize = yend - ystart
+
+    leftr = Rectangle((-slabGap, ystart), slabGap/2, ysize, hatch='/', fill=False)
+    rightr = Rectangle((slabGap/2, ystart), slabGap/2, ysize, hatch='\\', fill=False )
+
+    ax.add_patch(leftr)
+    ax.add_patch(rightr)
+
 
 def save_figure(fig, filename):
     """
@@ -136,6 +160,9 @@ def plot_wavefunction(reax, imax, wf, slabGap, colours=('blue', 'green')):
     reax.set_ylim((min(rey)-0.1*abs(min(rey)), max(rey)+0.1*abs(max(rey))))
     imax.set_ylim((min(imy) - 0.1 * abs(min(imy)), max(imy) + 0.1 * abs(max(imy))))
 
+    shade_waveguide(reax, slabGap)
+    shade_waveguide(imax, slabGap)
+
 def plot_intensity(ax, wf, slabGap, colour='blue', label=''):
     """
     This method plots the intensity of a wavefunction to ax
@@ -164,10 +191,36 @@ def plot_intensity(ax, wf, slabGap, colour='blue', label=''):
         ax.pyguide_afiemw_haveseen = True
         ax.set_xlim((-slabGap, slabGap))
         ax.set_ylim((min(y) - 0.1 * abs(min(y)), max(y) + 0.1 * abs(max(y))))
+        shade_waveguide(ax, slabGap)
 
+def plot_poynting_vector(ax, wf, slabGap, colour='blue'):
+    """
+    This method plots the poynting vector of wf to ax, using a stable algorithm that does not involve
+    differentiating the phase of wf
 
-def plot_poynting_vector():
-    pass
+    @param ax: The axes to plot to
+    @type ax: Axes
+    @param wf: The wavefunction whose poynting vector to plot, as a function of x
+    @type wf: function
+    @param slabGap: The slab gap of the planar waveguide
+    @type slabGap: float
+    @param colour: The colour to plot on
+    @type colour: object
+    @return: None
+    """
+
+    wfconj = lambda x: wf(x).conjugate()
+    dwf = lambda x: derivative(wf, x, dx=1e-11)
+    poynting = lambda x: (wfconj(x)*dwf(x)).imag
+
+    vf = vectorize(poynting)
+    x = linspace(-slabGap, slabGap, 2000)
+    y = vf(x)
+
+    ax.plot(x, y, linestyle='-', color=colour, antialiased=True, marker=None)
+    ax.set_xlim((-slabGap, slabGap))
+    ax.set_ylim((min(y) - 0.1 * abs(min(y)), max(y) + 0.1 * abs(max(y))))
+    shade_waveguide(ax, slabGap)
 
 def plot_argand():
     pass

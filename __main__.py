@@ -36,6 +36,8 @@ if __name__ == '__main__':
         help='Produce plots of guided modes in this waveguide')
     ms_action.add_argument('-wfp', '--wavefunctionplot', action='store_true',
         help='Produce a plot of the real and imaginary part of the wavefunctions of guided modes')
+    ms_action.add_argument('-pp', '--poyntingplot', action='store_true',
+        help='Plot the poynting vector of guided modes')
 
     ms_parser.add_argument('-m', '--modes', nargs='+', type=int, default=[],
         help='The guided modes upon which to operate (check --wavevectors to get the number of guided modes)')
@@ -68,4 +70,7 @@ if __name__ == '__main__':
                 modes=args.modes, dists=args.distances)
         elif args.wavefunctionplot:
             actions.ms_plot_wavefunctions(waveguide, args.wavelength, args.output, verbose=args.verbose,
+                modes=args.modes)
+        elif args.poyntingplot:
+            actions.ms_plot_poynting(waveguide, args.wavelength, args.output, verbose=args.verbose,
                 modes=args.modes)

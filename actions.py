@@ -131,6 +131,34 @@ def ms_plot_intensities(waveguide, wavelength, out_file, verbose=False, modes=()
 
     ms_execute_permode(f, out_file, modes, kxs, verbose=verbose)
 
+def ms_plot_poynting(waveguide, wavelength, out_file, verbose=False, modes=()):
+    """
+    This method plots the poynting vector of the mode wavefunctions given by modes
+
+    @param waveguide: The waveguide whose guided modes to plot
+    @type waveguide: PlanarWaveguide
+    @param wavelength: The wavelength of light illuminating this waveguide, in m
+    @type wavelength: float
+    @param verbose: Whether to give detailed output
+    @type verbose: bool
+    @param modes: A list of guided mode numbers to plot
+    @type modes: list
+    @return None
+    """
+    solver = modesolvers.ExpLossySolver(waveguide, wavelength)
+    kxs = solver.solve_transcendental(verbose=verbose)
+    wavefs = solver.get_wavefunctions(kxs, verbose=verbose)
+
+    def f(mode, fname):
+        wf = functools.partial(lambda z,x: wavefs[mode-1](x,z), 0)
+        (fig, ax) = plotting.setup_figure_standard(title=u'Poynting vector for n=%i mode' % mode,
+            xlabel=u'Distance accross waveguide (m)',
+            ylabel=u'Energy flow (right is +)')
+        plotting.plot_poynting_vector(ax, wf, waveguide.slab_gap)
+        plotting.save_figure(fig, fname)
+    ms_execute_permode(f, out_file, modes=modes, kx=kxs, verbose=verbose)
+
+
 def modesolver_find_kx(waveguide, wavelength, verbose):
     """This function is responsible for implementing modesolver --wavevectors behaviour
 
