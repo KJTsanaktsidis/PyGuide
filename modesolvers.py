@@ -334,7 +334,7 @@ class ExpLossySolver(LossySolver):
             ires = integrate.quad(intensity, -self.waveguide.slab_gap * 10, self.waveguide.slab_gap * 10,
                 epsabs=1e-10, epsrel=1e-10, limit=400)
             area = ires[0]
-            wavef_norm = functools.partial(wavef, A=A, B=B, C=C, D=D, kx=kx, kz=kz, g=gamma(kx), mult=1/area)
+            wavef_norm = functools.partial(wavef, A=A, B=B, C=C, D=D, kx=kx, kz=kz, g=gamma(kx), mult=1/np.sqrt(area))
             wavefunctions.append(wavef_norm)
         return wavefunctions
 

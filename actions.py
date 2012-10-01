@@ -4,7 +4,9 @@ This function contains methods that get called by __main__ in response to what c
 import functools
 
 import modesolvers
+import splitters
 import numpy as np
+import scipy.io as sio
 import csv
 import os
 import errno
@@ -157,6 +159,105 @@ def ms_plot_poynting(waveguide, wavelength, out_file, verbose=False, modes=()):
         plotting.plot_poynting_vector(ax, wf, waveguide.slab_gap)
         plotting.save_figure(fig, fname)
     ms_execute_permode(f, out_file, modes=modes, kx=kxs, verbose=verbose)
+
+def ms_plot_argand(waveguide, wavelength, out_file, verbose=False, modes=()):
+    """
+    This method plots an argand diagram of the wavefunctions given by modes
+
+    @param waveguide: The waveguide whose guided modes to plot
+    @type waveguide: PlanarWaveguide
+    @param wavelength: The wavelength of light illuminating this waveguide, in m
+    @type wavelength: float
+    @param verbose: Whether to give detailed output
+    @type verbose: bool
+    @param modes: A list of guided mode numbers to plot
+    @type modes: list
+    @return None
+    """
+    solver = modesolvers.ExpLossySolver(waveguide, wavelength)
+    kxs = solver.solve_transcendental(verbose=verbose)
+    wavefs = solver.get_wavefunctions(kxs, verbose=verbose)
+
+    def f(mode, fname):
+        wf = functools.partial(lambda z, x: wavefs[mode - 1](x, z), 0)
+        (fig, ax) = plotting.setup_figure_standard(title=u'Argand diagram for n=%i mode' % mode,
+            xlabel=ur'$\mathrm{Re}\left((\psi\left(x\right)\right)$',
+            ylabel=ur'$\mathrm{Im}\left((\psi\left(x\right)\right)$')
+        plotting.plot_argand(ax, wf, waveguide.slab_gap)
+        plotting.save_figure(fig, fname)
+    ms_execute_permode(f, out_file, modes=modes, kx=kxs, verbose=verbose)
+
+
+def sp_plot_wavefunction(waveguide, wavelength, angle, out_file, verbose=False):
+    """
+    This method produces a wavefunction hitting the waveguide at angle, and splits it into the guided modes of the
+    waveguide. The resultant wavefunction is plotted
+    @param waveguide: The waveguide being illuminated
+    @type waveguide: PlanarWaveguide
+    @param wavelength: The wavelength of light illuminating the waveguide
+    @type wavelength: float
+    @param angle: The angle of the plane waves striking the waveguide, in radian
+    @type angle: float
+    @param out_file: The filename to write output to
+    @type out_file: str
+    @param verbose: Whether or not to give verbose output
+    @type verbose: bool
+    @return: None
+    """
+
+    solver = modesolvers.ExpLossySolver(waveguide, wavelength)
+    kxs = solver.solve_transcendental(verbose=verbose)
+    wavefs = solver.get_wavefunctions(kxs, verbose=verbose)
+
+    k = 2*np.pi/wavelength
+    inkx = k*np.sin(angle)
+    inwave = lambda x: np.exp(1j*inkx*x)
+
+    splitter = splitters.ModeSplitter(inwave, wavefs)
+    cm = splitter.get_coupling_constants()
+    wffull = splitter.get_wavefunction(cm)
+    wf = functools.partial(lambda z,x: wffull(x,z), 0.1)
+
+    if verbose:
+        print 'Coupling coefficients: '
+        for (i,c) in enumerate(cm):
+            print '\t %i: Magnitude: %f, Phase: %f, Square: %f' % (i+1, np.abs(c), np.angle(c), np.abs(c)**2)
+
+    (fig, reax, imax) = plotting.setup_figure_topbottom(title=ur'Wavefunction for incidence angle $\theta=%f$ rad' % angle,
+        xlabel=u'Distance accross waveguide (m)',
+        ylabel=u'Wavefunction (arbitrary units)')
+    plotting.plot_wavefunction(reax, imax, wf, waveguide.slab_gap)
+    plotting.save_figure(fig, unicode(out_file))
+
+def sp_plot_mode_angles(waveguide, wavelength, out_file, verbose=False):
+    solver = modesolvers.ExpLossySolver(waveguide, wavelength)
+    kxs = solver.solve_transcendental(verbose=verbose)
+    wavefs = solver.get_wavefunctions(kxs, verbose=verbose)
+
+    coefftable = np.zeros((len(kxs),len(kxs)))
+
+
+    def f(mode, fname):
+        kx = kxs[mode-1]
+        inwave = lambda x: np.exp(1j*kx*x)
+        splitter = splitters.ModeSplitter(inwave, wavefs)
+        cm = splitter.get_coupling_constants()
+        wffull = splitter.get_wavefunction(cm)
+        wf = lambda x: wffull(x, 1)
+
+        (fig, reax, imax) = plotting.setup_figure_topbottom(
+            title=ur'Wavefunction for incidence angle on n=%i mode' % mode,
+            xlabel=u'Distance accross waveguide (m)',
+            ylabel=u'Wavefunction (arbitrary units)')
+        #(fig, ax) = plotting.setup_figure_standard()
+        plotting.plot_wavefunction(reax, imax, wf, waveguide.slab_gap)
+        #plotting.plot_intensity(ax, wf, waveguide.slab_gap)
+        plotting.save_figure(fig, fname)
+
+        coefftable[mode-1, :] = np.abs(cm)**2
+    ms_execute_permode(f, out_file, kx=kxs, verbose=verbose)
+    sio.savemat(out_file + '_coeffs', {'coeffs' : coefftable})
+
 
 
 def modesolver_find_kx(waveguide, wavelength, verbose):

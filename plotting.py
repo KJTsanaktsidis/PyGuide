@@ -5,6 +5,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.patches import Rectangle
 from numpy import linspace, vectorize, min, max, abs
 from scipy.misc import derivative
+import matplotlib.cm as cm
 
 def setup_figure_standard(title='', xlabel='', ylabel=''):
     """
@@ -222,5 +223,12 @@ def plot_poynting_vector(ax, wf, slabGap, colour='blue'):
     ax.set_ylim((min(y) - 0.1 * abs(min(y)), max(y) + 0.1 * abs(max(y))))
     shade_waveguide(ax, slabGap)
 
-def plot_argand():
-    pass
+def plot_argand(ax, wf, slabGap):
+    tvec = linspace(-slabGap, slabGap, 2000)
+    xdata = []
+    ydata = []
+    for t in tvec:
+        xdata.append(wf(t).real)
+        ydata.append(wf(t).imag)
+
+    ax.plot(xdata, ydata, linestyle='-', antialiased=True, marker=None)

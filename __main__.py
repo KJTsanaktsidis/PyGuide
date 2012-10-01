@@ -38,6 +38,8 @@ if __name__ == '__main__':
         help='Produce a plot of the real and imaginary part of the wavefunctions of guided modes')
     ms_action.add_argument('-pp', '--poyntingplot', action='store_true',
         help='Plot the poynting vector of guided modes')
+    ms_action.add_argument('-ap', '--argandplot', action='store_true',
+        help='Plot an argand diagram of the guided modes')
 
     ms_parser.add_argument('-m', '--modes', nargs='+', type=int, default=[],
         help='The guided modes upon which to operate (check --wavevectors to get the number of guided modes)')
@@ -45,6 +47,19 @@ if __name__ == '__main__':
         help='The distances at which to produce plots (relevant to --intensityplot)')
     ms_parser.add_argument('-l', '--wavelength', action='store', default=1.54e-10, type=float,
         help='The wavelength of light that is illuminating this waveguide (default copper Ka1)')
+
+    sp_parser = subparsers.add_parser('modesplitter')
+    sp_action = sp_parser.add_mutually_exclusive_group(required=True)
+
+    sp_action.add_argument('-wfp', '--wavefunctionplot', action='store_true',
+        help='Produce a plot of the real and imaginary part of the waveguide wavefunction')
+    sp_action.add_argument('-wfpa', '--wavefunctionplotall', action='store_true',
+        help='Produce a plot of the real and imaginary part of the wavefunction, for each mode incidence angle')
+
+    sp_parser.add_argument('-l', '--wavelength', action='store', default=1.54e-10, type=float,
+        help='The wavelength of light that is illuminating this waveguide (default copper Ka1)')
+    sp_parser.add_argument('-a', '--angle', action='store', default=0, type=float,
+        help='The angle of incidence of a plane wave hitting this waveguide')
 
     #get args
     args = parser.parse_args()
@@ -74,3 +89,12 @@ if __name__ == '__main__':
         elif args.poyntingplot:
             actions.ms_plot_poynting(waveguide, args.wavelength, args.output, verbose=args.verbose,
                 modes=args.modes)
+        elif args.argandplot:
+            actions.ms_plot_argand(waveguide, args.wavelength, args.output, verbose=args.verbose,
+                modes=args.modes)
+    elif args.subparser == 'modesplitter':
+        if args.wavefunctionplot:
+            actions.sp_plot_wavefunction(waveguide, args.wavelength, args.angle, args.output,
+                verbose=args.verbose)
+        elif args.wavefunctionplotall:
+            actions.sp_plot_mode_angles(waveguide, args.wavelength, args.output, verbose=args.verbose)
