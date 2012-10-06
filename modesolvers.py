@@ -265,8 +265,6 @@ class LossySolver(object):
                 print 'Optimised to kx=%s; condition number %s' % (optim_kx, condition_number)
                 sys.stdout.flush()
 
-            if i == 7:
-                print 'n=8 mode: %s' % optim_kx
             i = i + 1
             complex_kx.append(optim_kx)
 

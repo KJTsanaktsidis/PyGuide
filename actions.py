@@ -250,11 +250,14 @@ def sp_plot_mode_angles(waveguide, wavelength, out_file, verbose=False):
         wffull = splitter.get_wavefunction(cm)
         wf = lambda x: wffull(x, 0.005)
 
-        (fig, reax, imax) = plotting.setup_figure_topbottom(
+        #(fig, reax, imax) = plotting.setup_figure_topbottom(
+        #    title=ur'Wavefunction for incidence angle on n=%i mode' % mode,
+        #    xlabel=u'Distance accross waveguide (m)',
+        #    ylabel=u'Wavefunction (arbitrary units)')
+        (fig, ax) = plotting.setup_figure_standard(
             title=ur'Wavefunction for incidence angle on n=%i mode' % mode,
             xlabel=u'Distance accross waveguide (m)',
             ylabel=u'Wavefunction (arbitrary units)')
-        (fig, ax) = plotting.setup_figure_standard()
         #plotting.plot_wavefunction(reax, imax, wf, waveguide.slab_gap)
         plotting.plot_intensity(ax, wf, waveguide.slab_gap)
         plotting.save_figure(fig, fname)
@@ -300,6 +303,44 @@ def sp_plot_total_coupling(waveguide, wavelength, out_file, verbose=False):
     ax.plot(angs, intensity)
     plotting.save_figure(fig, out_file)
 
+def sp_plot_coupled_map(waveguide, wavelength, angle, zlimits, out_file, verbose=False):
+    """
+    This method produces a plot of the intensity map in the waveguide when it is illuminated by a plane wave
+    of arbitrary angle
+
+    @param waveguide: The waveguide being illuminated
+    @type waveguide: PlanarWaveguide
+    @param wavelength: The wavelength of light illuminating the waveguide
+    @type wavelength: float
+    @param angle: The angle of the plane waves striking the waveguide, in radian
+    @type angle: float
+    @param zlimits: The z-axis limits within which to plot the wavefunction
+    @type zlimits: tuple
+    @param out_file: The filename to write output to
+    @type out_file: str
+    @param verbose: Whether or not to give verbose output
+    @type verbose: bool
+    @return: None
+    """
+
+    #do the decomposition
+    solver = modesolvers.ExpLossySolver(waveguide, wavelength)
+    kxs = solver.solve_transcendental(verbose=verbose)
+    wavefs = solver.get_wavefunctions(kxs, verbose=verbose)
+
+    k = 2 * np.pi / wavelength
+    inkx = k * np.sin(angle)
+    inwave = lambda x: np.exp(1j * inkx * x)
+
+    splitter = splitters.ModeSplitter(inwave, wavefs)
+    cm = splitter.get_coupling_constants()
+    wffull = splitter.get_wavefunction(cm)
+    (fig, ax) = plotting.setup_figure_standard(
+        title=ur'Intensity for incidence angle %f rads' % angle,
+        xlabel=u'Longitudinal distance accross waveguide (m)',
+        ylabel=u'Transverse distance accross waveguide (m)')
+    plotting.plot_intensity_map(ax, wffull, waveguide.slab_gap, zlimits)
+    plotting.save_figure(fig, unicode(out_file))
 
 def modesolver_find_kx(waveguide, wavelength, verbose):
     """This function is responsible for implementing modesolver --wavevectors behaviour

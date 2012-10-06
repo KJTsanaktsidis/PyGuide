@@ -26,9 +26,9 @@ def setup_figure_standard(title='', xlabel='', ylabel=''):
     #: :type: Axes
     ax = fig.add_subplot(111)
 
-    ax.set_title(title, size=14)
-    ax.set_xlabel(xlabel, size=12)
-    ax.set_ylabel(ylabel, size=12)
+    ax.set_title(title, size=12)
+    ax.set_xlabel(xlabel, size=10)
+    ax.set_ylabel(ylabel, size=10)
     ax.ticklabel_format(scilimits=(-3,3))
 
     return (fig, ax)
@@ -55,9 +55,9 @@ def setup_figure_topbottom(title='', xlabel='', ylabel=''):
     #: :type: Axes
     bottomax = fig.add_subplot(212, sharex=topax)
 
-    topax.set_title(title, size=14)
-    bottomax.set_xlabel(xlabel, size=12)
-    bottomax.set_ylabel(ylabel, size=12)
+    topax.set_title(title, size=12)
+    bottomax.set_xlabel(xlabel, size=10)
+    bottomax.set_ylabel(ylabel, size=10)
 
     #place the ylabel in the middle of the two plots
     bpos = bottomax.get_yaxis().get_label().get_position()
@@ -66,7 +66,7 @@ def setup_figure_topbottom(title='', xlabel='', ylabel=''):
     topax.ticklabel_format(scilimits=(-3, 3))
     bottomax.ticklabel_format(scilimits=(-3, 3))
 
-    fig.subplots_adjust()
+    #fig.subplots_adjust()
     return (fig, topax, bottomax)
 
 def shade_waveguide(ax, slabGap):
@@ -115,6 +115,7 @@ def save_figure(fig, filename):
             for label in ax.get_legend().get_texts():
                 label.set_size(10)
 
+    fig.subplots_adjust()
     c = FigureCanvas(fig)
     c.print_figure(filename, dpi=300)
 
@@ -239,12 +240,12 @@ def plot_intensity_map(ax, wf, slabGap, z):
     """
 
     intensity = lambda x,z: abs(wf(x,z))**2
-    (X,Y) = meshgrid(linspace(-slabGap, slabGap, 500), linspace(z[0], z[1], 500))
+    (X,Y) = meshgrid(linspace(z[0], z[1], 500), linspace(-slabGap, slabGap, 500))
     vf = vectorize(intensity)
-    Z = vf(X,Y)
+    Z = vf(Y,X)
 
-    ax.pcolor(X, Y, Z, cmap=cm.hsv)
-    ax.get_figure().colorbar()
+    pcm = ax.pcolor(X, Y, Z, cmap=cm.jet)
+    ax.get_figure().colorbar(pcm, ax=ax, use_gridspec=True)
     ax.set_axes([z[0], z[1], -slabGap, slabGap])
 
     #bang down a slightly different guideline for the waveguide limits

@@ -57,11 +57,17 @@ if __name__ == '__main__':
         help='Produce a plot of the real and imaginary part of the wavefunction, for each mode incidence angle')
     sp_action.add_argument('-cpp', '--couplingplot', action='store_true',
         help='Produce a plot of the coupling efficiency of the waveguide as a function of incidence angle')
+    sp_action.add_argument('-im', '--intensitymap', action='store_true',
+        help='Produce a plot of the intensity map when the waveguide is struck by a tilted plane wave')
 
     sp_parser.add_argument('-l', '--wavelength', action='store', default=1.54e-10, type=float,
         help='The wavelength of light that is illuminating this waveguide (default copper Ka1)')
     sp_parser.add_argument('-a', '--angle', action='store', default=0, type=float,
         help='The angle of incidence of a plane wave hitting this waveguide')
+    sp_parser.add_argument('-zi', '--zinitial', action='store', default=0, type=float,
+        help='The z-axis plane to begin an intensity map at')
+    sp_parser.add_argument('-zf', '--zfinal', action='store', default=5e-3, type=float,
+        help='The z-axis plane to end an intensity mpa at')
 
     #get args
     args = parser.parse_args()
@@ -102,3 +108,6 @@ if __name__ == '__main__':
             actions.sp_plot_mode_angles(waveguide, args.wavelength, args.output, verbose=args.verbose)
         elif args.couplingplot:
             actions.sp_plot_total_coupling(waveguide, args.wavelength, args.output, verbose=args.verbose)
+        elif args.intensitymap:
+            actions.sp_plot_coupled_map(waveguide, args.wavelength, args.angle, (args.zinitial, args.zfinal),
+                args.output, verbose=args.verbose)
