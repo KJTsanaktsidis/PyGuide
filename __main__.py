@@ -69,6 +69,17 @@ if __name__ == '__main__':
     sp_parser.add_argument('-zf', '--zfinal', action='store', default=5e-3, type=float,
         help='The z-axis plane to end an intensity mpa at')
 
+    ic_parser = subparsers.add_parser('incoherent')
+    ic_action = ic_parser.add_mutually_exclusive_group(required=True)
+
+    ic_action.add_argument('-es', '--exitsurface', action='store_true',
+        help='Produce a plot of the intensity at the exit surface of the waveguide')
+
+    ic_parser.add_argument('-src', '--source', action='store', required=True,
+        help='The x-ray source to use to illuminate this waveguide')
+    sp_parser.add_argument('-a', '--angle', action='store', default=0, type=float,
+        help='The angle of incidence of a plane wave hitting this waveguide')
+
     #get args
     args = parser.parse_args()
 
@@ -111,3 +122,19 @@ if __name__ == '__main__':
         elif args.intensitymap:
             actions.sp_plot_coupled_map(waveguide, args.wavelength, args.angle, (args.zinitial, args.zfinal),
                 args.output, verbose=args.verbose)
+    elif args.subparser == 'incoherent':
+        #find us a source
+        def __issubclass(obj1, obj2):
+            try:
+                return issubclass(obj1, obj2)
+            except Exception:
+                return False
+        sourcesmod = __import__('sources')
+        modname = args.source.lower()
+        import inspect
+        from sources.xraysource import XRaySource
+        targetmod = [obj for (name, obj) in inspect.getmembers(sourcesmod) if name == modname][0]
+        targetclass = [obj for (name, obj) in inspect.getmembers(targetmod) if __issubclass(obj, XRaySource)
+                        and not obj == XRaySource][0]
+        if args.exitsurface:
+            actions.ic_exit_surface(waveguide, targetclass, args.angle, args.output, verbose=args.verbose)

@@ -116,6 +116,7 @@ def save_figure(fig, filename):
                 label.set_size(10)
 
     fig.subplots_adjust()
+    fig.tight_layout()
     c = FigureCanvas(fig)
     c.print_figure(filename, dpi=300)
 

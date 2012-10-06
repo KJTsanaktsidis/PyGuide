@@ -365,3 +365,23 @@ def modesolver_output_kx(kx, ang, out_file):
     for i in range(0, len(kx)):
         wr.writerow([kx[i], ang[i]])
     return
+
+def ic_exit_surface(waveguide, source, angle, out_file, verbose=False):
+    """
+    This method implements incoherent --exitsurface behaviour
+    It plots the intensity profile at the exit surface of the waveguide when it is illuminated with incoherent
+    radiation from source at an angle of angle
+
+    @param waveguide: The waveguide being illuminated
+    @type waveguide: PlanarWaveguide
+    @param source: The characteristics of the source that is generating the radiation hitting this waveguide
+    @type source: type
+    @param angle: The angle the waveguide is tilted at with respect to the source
+    @type angle: float
+    @param out_file: The file to write the resultant plot to
+    @type out_file: str
+    @param verbose: Whether or not to give verbose output
+    @type verbose: bool
+    @return: None
+    """
+
