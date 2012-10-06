@@ -3,7 +3,7 @@ from matplotlib.figure import Axes
 from matplotlib.text import Text
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.patches import Rectangle
-from numpy import linspace, vectorize, min, max, abs
+from numpy import linspace, vectorize, min, max, abs, meshgrid
 from scipy.misc import derivative
 import matplotlib.cm as cm
 
@@ -222,6 +222,38 @@ def plot_poynting_vector(ax, wf, slabGap, colour='blue'):
     ax.set_xlim((-slabGap, slabGap))
     ax.set_ylim((min(y) - 0.1 * abs(min(y)), max(y) + 0.1 * abs(max(y))))
     shade_waveguide(ax, slabGap)
+
+def plot_intensity_map(ax, wf, slabGap, z):
+    """
+    This method plots a 2-d map of intensity accross and down the waveguide.
+
+    @param ax: The axes to plot to
+    @type ax: Axes
+    @param wf: The wavefunction whose intensity to plot, as a function of x and z
+    @type wf: function
+    @param slabGap: The slab gap of the planar waveguide
+    @type slabGap: float
+    @param z: A tuple representing the (start, end) z planes to plot between
+    @type z: tuple
+    @return: None
+    """
+
+    intensity = lambda x,z: abs(wf(x,z))**2
+    (X,Y) = meshgrid(linspace(-slabGap, slabGap, 500), linspace(z[0], z[1], 500))
+    vf = vectorize(intensity)
+    Z = vf(X,Y)
+
+    ax.pcolor(X, Y, Z, cmap=cm.hsv)
+    ax.get_figure().colorbar()
+    ax.set_axes([z[0], z[1], -slabGap, slabGap])
+
+    #bang down a slightly different guideline for the waveguide limits
+    topr = Rectangle((z[0], slabGap/2), z[1]-z[0], slabGap/2, hatch='\\', fill=False)
+    bottomr = Rectangle((z[0], -slabGap), z[1]-z[0], slabGap/2, hatch='/', fill=False)
+    ax.add_patch(topr)
+    ax.add_patch(bottomr)
+
+
 
 def plot_argand(ax, wf, slabGap):
     tvec = linspace(-slabGap, slabGap, 2000)
