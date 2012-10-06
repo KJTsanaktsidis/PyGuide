@@ -42,12 +42,15 @@ class ModeSplitter(object):
             integrand = lambda x: inwaveconj(x)*wavef(x, 0)
             reint = lambda x: integrand(x).real
             imint = lambda x: integrand(x).imag
-            reval = integrate.quad(reint, -1e-6, 1e-6, limit=500)[0]
-            imval = integrate.quad(imint, -1e-6, 1e-6, limit=500)[0]
+            reval = integrate.quad(reint, -1e-6, 1e-6, limit=3000)[0]
+            imval = integrate.quad(imint, -1e-6, 1e-6, limit=3000)[0]
             sum += np.abs(reval+1j*imval)**2
             cm.append(reval+1j*imval)
+        #Normalise the coefficients by the amount of light that strikes the waveguide apeture
+
         for (n,c) in enumerate(cm):
-            cm[n] = c/np.sqrt(sum)
+            pass
+        #    cm[n] = c/np.sqrt(sum)
         return cm
 
     def get_wavefunction(self, cms):

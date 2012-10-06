@@ -55,6 +55,8 @@ if __name__ == '__main__':
         help='Produce a plot of the real and imaginary part of the waveguide wavefunction')
     sp_action.add_argument('-wfpa', '--wavefunctionplotall', action='store_true',
         help='Produce a plot of the real and imaginary part of the wavefunction, for each mode incidence angle')
+    sp_action.add_argument('-cpp', '--couplingplot', action='store_true',
+        help='Produce a plot of the coupling efficiency of the waveguide as a function of incidence angle')
 
     sp_parser.add_argument('-l', '--wavelength', action='store', default=1.54e-10, type=float,
         help='The wavelength of light that is illuminating this waveguide (default copper Ka1)')
@@ -98,3 +100,5 @@ if __name__ == '__main__':
                 verbose=args.verbose)
         elif args.wavefunctionplotall:
             actions.sp_plot_mode_angles(waveguide, args.wavelength, args.output, verbose=args.verbose)
+        elif args.couplingplot:
+            actions.sp_plot_total_coupling(waveguide, args.wavelength, args.output, verbose=args.verbose)

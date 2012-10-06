@@ -7,6 +7,8 @@ import modesolvers
 import splitters
 import numpy as np
 import scipy.io as sio
+import scipy.integrate as integrate
+import progressbar
 import csv
 import os
 import errno
@@ -216,7 +218,7 @@ def sp_plot_wavefunction(waveguide, wavelength, angle, out_file, verbose=False):
     splitter = splitters.ModeSplitter(inwave, wavefs)
     cm = splitter.get_coupling_constants()
     wffull = splitter.get_wavefunction(cm)
-    wf = functools.partial(lambda z,x: wffull(x,z), 0.1)
+    wf = functools.partial(lambda z,x: wffull(x,z), 0.005)
 
     if verbose:
         print 'Coupling coefficients: '
@@ -226,6 +228,9 @@ def sp_plot_wavefunction(waveguide, wavelength, angle, out_file, verbose=False):
     (fig, reax, imax) = plotting.setup_figure_topbottom(title=ur'Wavefunction for incidence angle $\theta=%f$ rad' % angle,
         xlabel=u'Distance accross waveguide (m)',
         ylabel=u'Wavefunction (arbitrary units)')
+    #plotting.plot_intensity(reax, wf, waveguide.slab_gap)
+    #phasef = lambda x: np.angle(wf(x))
+
     plotting.plot_wavefunction(reax, imax, wf, waveguide.slab_gap)
     plotting.save_figure(fig, unicode(out_file))
 
@@ -239,25 +244,61 @@ def sp_plot_mode_angles(waveguide, wavelength, out_file, verbose=False):
 
     def f(mode, fname):
         kx = kxs[mode-1]
-        inwave = lambda x: np.exp(1j*kx*x)
+        inwave = lambda x: np.exp(1j*kx.real*x)
         splitter = splitters.ModeSplitter(inwave, wavefs)
         cm = splitter.get_coupling_constants()
         wffull = splitter.get_wavefunction(cm)
-        wf = lambda x: wffull(x, 1)
+        wf = lambda x: wffull(x, 0.005)
 
         (fig, reax, imax) = plotting.setup_figure_topbottom(
             title=ur'Wavefunction for incidence angle on n=%i mode' % mode,
             xlabel=u'Distance accross waveguide (m)',
             ylabel=u'Wavefunction (arbitrary units)')
-        #(fig, ax) = plotting.setup_figure_standard()
-        plotting.plot_wavefunction(reax, imax, wf, waveguide.slab_gap)
-        #plotting.plot_intensity(ax, wf, waveguide.slab_gap)
+        (fig, ax) = plotting.setup_figure_standard()
+        #plotting.plot_wavefunction(reax, imax, wf, waveguide.slab_gap)
+        plotting.plot_intensity(ax, wf, waveguide.slab_gap)
         plotting.save_figure(fig, fname)
 
         coefftable[mode-1, :] = np.abs(cm)**2
     ms_execute_permode(f, out_file, kx=kxs, verbose=verbose)
     sio.savemat(out_file + '_coeffs', {'coeffs' : coefftable})
 
+def sp_plot_total_coupling(waveguide, wavelength, out_file, verbose=False):
+    solver = modesolvers.ExpLossySolver(waveguide, wavelength)
+    kxs = solver.solve_transcendental(verbose=verbose)
+    wavefs = solver.get_wavefunctions(kxs, verbose=verbose)
+
+    tirang = waveguide.critical_angle(wavelength)
+    angs = np.linspace(0, tirang+0.1*tirang, num=100)
+    intensity = np.zeros(100)
+
+    k = 2*np.pi/wavelength
+
+    pb = progressbar.ProgressBar(widgets=['Calculating Integrals: ', progressbar.Percentage(), progressbar.Bar()],
+        maxval=len(angs))
+    if verbose:
+        pb.start()
+
+    for (n,a) in enumerate(angs):
+        kx = np.sin(a)*k
+        inwave = lambda x: np.exp(1j*kx*x)
+
+        splitter = splitters.ModeSplitter(inwave, wavefs)
+        cm = splitter.get_coupling_constants()
+        wffull = splitter.get_wavefunction(cm)
+        wf = lambda x: wffull(x, 0)
+        integrand = lambda x: np.abs(wf(x))**2
+        area = integrate.quad(integrand, -1e-6, 1e-6, limit=3000)[0]
+        intensity[n] = area
+
+        if verbose:
+            pb.update(n)
+
+    (fig, ax) = plotting.setup_figure_standard(title=u'Coupling efficiency of waveguide',
+        xlabel=u'Angle of radiation incidence (rads)',
+        ylabel=u'Intensity Coupled')
+    ax.plot(angs, intensity)
+    plotting.save_figure(fig, out_file)
 
 
 def modesolver_find_kx(waveguide, wavelength, verbose):
