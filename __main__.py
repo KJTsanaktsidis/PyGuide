@@ -77,8 +77,10 @@ if __name__ == '__main__':
 
     ic_parser.add_argument('-src', '--source', action='store', required=True,
         help='The x-ray source to use to illuminate this waveguide')
-    sp_parser.add_argument('-a', '--angle', action='store', default=0, type=float,
+    ic_parser.add_argument('-a', '--angle', action='store', default=0, type=float,
         help='The angle of incidence of a plane wave hitting this waveguide')
+    ic_parser.add_argument('-nw', '--numwaves', action='store', type=int, default=500,
+        help='The number of waves to pass through the waveguide')
 
     #get args
     args = parser.parse_args()
@@ -129,12 +131,12 @@ if __name__ == '__main__':
                 return issubclass(obj1, obj2)
             except Exception:
                 return False
-        sourcesmod = __import__('sources')
         modname = args.source.lower()
+        sourcesmod = __import__('sources.' + modname)
         import inspect
         from sources.xraysource import XRaySource
         targetmod = [obj for (name, obj) in inspect.getmembers(sourcesmod) if name == modname][0]
         targetclass = [obj for (name, obj) in inspect.getmembers(targetmod) if __issubclass(obj, XRaySource)
                         and not obj == XRaySource][0]
         if args.exitsurface:
-            actions.ic_exit_surface(waveguide, targetclass, args.angle, args.output, verbose=args.verbose)
+            actions.ic_exit_surface(waveguide, targetclass, args.angle, args.numwaves, args.output, verbose=args.verbose)

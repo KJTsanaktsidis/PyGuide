@@ -52,5 +52,5 @@ class MySource(XRaySource):
         kx = k*sin(angle)
         kz = k*cos(angle)
         planewave = lambda x,z: exp(1j*kx*x)*exp(1j*kz*z)
-        return planewave
+        return planewave, wavelength
 

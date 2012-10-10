@@ -18,8 +18,8 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.legend import Legend
-import matplotlib
-
+import matplotlib.cm
+from matplotlib.patches import Rectangle
 
 def ms_execute_permode(f, fbase, modes=(), kx=(), verbose=False):
     """
@@ -366,7 +366,7 @@ def modesolver_output_kx(kx, ang, out_file):
         wr.writerow([kx[i], ang[i]])
     return
 
-def ic_exit_surface(waveguide, source, angle, out_file, verbose=False):
+def ic_exit_surface(waveguide, sourcecls, angle, nwaves, out_file, verbose=False):
     """
     This method implements incoherent --exitsurface behaviour
     It plots the intensity profile at the exit surface of the waveguide when it is illuminated with incoherent
@@ -378,6 +378,8 @@ def ic_exit_surface(waveguide, source, angle, out_file, verbose=False):
     @type source: type
     @param angle: The angle the waveguide is tilted at with respect to the source
     @type angle: float
+    @param nwaves: The number of waves to contribute to the plot of the exit surface
+    @type nwaves: int
     @param out_file: The file to write the resultant plot to
     @type out_file: str
     @param verbose: Whether or not to give verbose output
@@ -385,3 +387,54 @@ def ic_exit_surface(waveguide, source, angle, out_file, verbose=False):
     @return: None
     """
 
+    source = sourcecls(angle)
+    intensity = np.zeros((300,600))
+    (X, Y) = np.meshgrid(np.linspace(0, waveguide.length, 600),
+        np.linspace(-waveguide.slab_gap, waveguide.slab_gap, 300))
+
+    pb = progressbar.ProgressBar(widgets=['Performing Incoherent Sum: ', progressbar.Percentage(), progressbar.Bar()],
+        maxval=nwaves)
+    if verbose:
+        pb.start()
+    #We need to iterate over many waves, summing their intensity
+    for i in xrange(nwaves):
+        #get a wave
+        (wave, wl) = source.get_wave()
+        inwave = lambda x: wave(x, 0) #only intersted in incidence surface
+        #solve modes for this wl
+        solver = modesolvers.ExpLossySolver(waveguide, wl)
+        kx = solver.solve_transcendental(verbose=False) #this'll get real noisy otherwise
+        modewaves = solver.get_wavefunctions(kx, verbose=False)
+        #split wave into modes
+        splitter = splitters.ModeSplitter(inwave, modewaves)
+        cm = splitter.get_coupling_constants()
+        wffull = splitter.get_wavefunction(cm)
+        #get wavefunction at exit surface
+        exitf = lambda x,y: np.abs(wffull(y, x))**2
+        #incoherently add exitf to the picture so far
+        exitvf = np.vectorize(exitf)
+        intensity = intensity + exitvf(X,Y)
+        if verbose:
+            pb.update(i+1)
+    #now plot it
+    (fig, ax) = plotting.setup_figure_standard(
+        title=ur'Exit surface intensity',
+        xlabel=u'Longitudinal distance across waveguide (m)',
+        ylabel=u'Transverse distance across waveguide (m)')
+    #ax.plot(x, intensity, color='blue', linestyle='-', marker=None, antialiased=True)
+    #ax.set_xlim((-waveguide.slab_gap, waveguide.slab_gap))
+    #ax.set_ylim((np.min(intensity) - 0.1 * np.abs(np.min(intensity)),
+    #             np.max(intensity) + 0.1 * np.abs(np.max(intensity))))
+    #plotting.shade_waveguide(ax, waveguide.slab_gap)
+
+    pcm = ax.pcolor(X, Y, intensity, cmap=matplotlib.cm.jet)
+    ax.get_figure().colorbar(pcm, ax=ax, use_gridspec=True)
+    ax.set_xlim((0, waveguide.length))
+    ax.set_ylim((-waveguide.slab_gap, waveguide.slab_gap))
+
+    #bang down a slightly different guideline for the waveguide limits
+    topr = Rectangle((0, waveguide.slab_gap / 2), waveguide.length, waveguide.slab_gap / 2, hatch='\\', fill=False)
+    bottomr = Rectangle((0, waveguide.slab_gap), waveguide.length, waveguide.slab_gap / 2, hatch='/', fill=False)
+    ax.add_patch(topr)
+    ax.add_patch(bottomr)
+    plotting.save_figure(fig, unicode(out_file))
