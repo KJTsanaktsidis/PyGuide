@@ -274,6 +274,7 @@ class LossySolver(object):
         sys.stdout.flush()
         return complex_kx
 
+#noinspection PyCallingNonCallable
 class ExpLossySolver(LossySolver):
 
     def coeff_matrix(self, kx):

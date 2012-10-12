@@ -74,6 +74,8 @@ if __name__ == '__main__':
 
     ic_action.add_argument('-es', '--exitsurface', action='store_true',
         help='Produce a plot of the intensity at the exit surface of the waveguide')
+    ic_action.add_argument('-ff', '--farfield', action='store_true',
+        help='Produce a plot of the intensity at the far field')
 
     ic_parser.add_argument('-src', '--source', action='store', required=True,
         help='The x-ray source to use to illuminate this waveguide')
@@ -140,3 +142,6 @@ if __name__ == '__main__':
                         and not obj == XRaySource][0]
         if args.exitsurface:
             actions.ic_exit_surface(waveguide, targetclass, args.angle, args.numwaves, args.output, verbose=args.verbose)
+        elif args.farfield:
+            actions.ic_far_field(waveguide, targetclass, args.angle, args.numwaves, args.output,
+                verbose=args.verbose)

@@ -1,5 +1,5 @@
 <waveguide type="PlanarWaveguide">
-    <length>0.05 </length>
+    <length>0.005 </length>
     <slabgap>500e-9</slabgap>
     <coreindex type="Complex">1</coreindex>
     <claddingindex type="text/csv">

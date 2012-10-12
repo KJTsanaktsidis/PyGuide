@@ -7,6 +7,7 @@ import modesolvers
 import splitters
 import numpy as np
 import scipy.io as sio
+import numpy.fft as fft
 import scipy.integrate as integrate
 import progressbar
 import csv
@@ -18,6 +19,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.legend import Legend
+from matplotlib.axes import Axes
 import matplotlib.cm
 from matplotlib.patches import Rectangle
 
@@ -78,9 +80,10 @@ def ms_plot_wavefunctions(waveguide, wavelength, out_file, verbose=False, modes=
     def f(mode, fname):
         wavef = lambda x: wavefs[mode-1](x, 0)
         (fig, reax, imax) = plotting.setup_figure_topbottom(title=u'Wavefunction for n=%i mode' % mode,
+        #fig, reax) = plotting.setup_figure_standard(title=u'Wavefunction for n=%i mode' % mode,
             xlabel=u'Distance accross waveguide (m)',
             ylabel=u'Wavefunction (arbitrary units)')
-        plotting.plot_wavefunction(reax, imax, wavef, waveguide.slab_gap)
+        plotting.plot_wavefunction(reax, reax, wavef, waveguide.slab_gap)
         plotting.save_figure(fig, fname)
 
     ms_execute_permode(f, out_file, modes, kxs, verbose=verbose)
@@ -388,23 +391,38 @@ def ic_exit_surface(waveguide, sourcecls, angle, nwaves, out_file, verbose=False
     """
 
     source = sourcecls(angle)
-    intensity = np.zeros((300,600))
-    (X, Y) = np.meshgrid(np.linspace(0, waveguide.length, 600),
-        np.linspace(-waveguide.slab_gap, waveguide.slab_gap, 300))
+    intensity = np.zeros((250,500))
+    (X, Y) = np.meshgrid(np.linspace(0, waveguide.length, 500),
+        np.linspace(-waveguide.slab_gap, waveguide.slab_gap, 250))
+
+    #let's see if our source is monochromatic
+    prevval = source.get_wave()[1]
+    ismonochrome = True
+    for i in range(10):
+        newval = source.get_wave()[1]
+        ismonochrome = ismonochrome and prevval == newval
+        prevval = newval
+    if ismonochrome:
+        #get this done once
+        solver = modesolvers.ExpLossySolver(waveguide, prevval)
+        kx = solver.solve_transcendental(verbose=False) #this'll get real noisy otherwise
+        modewaves = solver.get_wavefunctions(kx, verbose=False)
 
     pb = progressbar.ProgressBar(widgets=['Performing Incoherent Sum: ', progressbar.Percentage(), progressbar.Bar()],
         maxval=nwaves)
     if verbose:
         pb.start()
+
     #We need to iterate over many waves, summing their intensity
     for i in xrange(nwaves):
         #get a wave
         (wave, wl) = source.get_wave()
         inwave = lambda x: wave(x, 0) #only intersted in incidence surface
         #solve modes for this wl
-        solver = modesolvers.ExpLossySolver(waveguide, wl)
-        kx = solver.solve_transcendental(verbose=False) #this'll get real noisy otherwise
-        modewaves = solver.get_wavefunctions(kx, verbose=False)
+        if not ismonochrome:
+            solver = modesolvers.ExpLossySolver(waveguide, wl)
+            kx = solver.solve_transcendental(verbose=False) #this'll get real noisy otherwise
+            modewaves = solver.get_wavefunctions(kx, verbose=False)
         #split wave into modes
         splitter = splitters.ModeSplitter(inwave, modewaves)
         cm = splitter.get_coupling_constants()
@@ -427,6 +445,10 @@ def ic_exit_surface(waveguide, sourcecls, angle, nwaves, out_file, verbose=False
     #             np.max(intensity) + 0.1 * np.abs(np.max(intensity))))
     #plotting.shade_waveguide(ax, waveguide.slab_gap)
 
+    #Consider only the rightmost 4/5ths when setting the intensity
+    #lowest = np.min(intensity[:, 360:])
+    #highest = np.max(intensity[:, 360:])
+
     pcm = ax.pcolor(X, Y, intensity, cmap=matplotlib.cm.jet)
     ax.get_figure().colorbar(pcm, ax=ax, use_gridspec=True)
     ax.set_xlim((0, waveguide.length))
@@ -434,7 +456,85 @@ def ic_exit_surface(waveguide, sourcecls, angle, nwaves, out_file, verbose=False
 
     #bang down a slightly different guideline for the waveguide limits
     topr = Rectangle((0, waveguide.slab_gap / 2), waveguide.length, waveguide.slab_gap / 2, hatch='\\', fill=False)
-    bottomr = Rectangle((0, waveguide.slab_gap), waveguide.length, waveguide.slab_gap / 2, hatch='/', fill=False)
+    bottomr = Rectangle((0, -waveguide.slab_gap), waveguide.length, waveguide.slab_gap / 2, hatch='/', fill=False)
     ax.add_patch(topr)
     ax.add_patch(bottomr)
     plotting.save_figure(fig, unicode(out_file))
+    #save the data too
+    sio.savemat(out_file+'.mat', {'intensity':intensity, 'X':X, 'Y':Y})
+
+def ic_far_field(waveguide, sourcecls, angle, nwaves, out_file, verbose=False):
+    """Pretty shameless copy-paste of the exit_surface method follows"""
+    source = sourcecls(angle)
+    intensity = np.zeros(500)
+    xv = np.linspace(-waveguide.slab_gap, waveguide.slab_gap, 500)
+
+    #let's see if our source is monochromatic
+    prevval = source.get_wave()[1]
+    ismonochrome = True
+    for i in range(10):
+        newval = source.get_wave()[1]
+        ismonochrome = ismonochrome and prevval == newval
+        prevval = newval
+    if ismonochrome:
+        #get this done once
+        solver = modesolvers.ExpLossySolver(waveguide, prevval)
+        kx = solver.solve_transcendental(verbose=False) #this'll get real noisy otherwise
+        modewaves = solver.get_wavefunctions(kx, verbose=False)
+
+    pb = progressbar.ProgressBar(widgets=['Performing Incoherent Sum: ', progressbar.Percentage(), progressbar.Bar()],
+        maxval=nwaves)
+    if verbose:
+        pb.start()
+
+    #We need to iterate over many waves, summing their intensity
+    for i in xrange(nwaves):
+        #get a wave
+        (wave, wl) = source.get_wave()
+        inwave = lambda x: wave(x, 0) #only intersted in incidence surface
+        #solve modes for this wl
+        if not ismonochrome:
+            solver = modesolvers.ExpLossySolver(waveguide, wl)
+            kx = solver.solve_transcendental(verbose=False) #this'll get real noisy otherwise
+            modewaves = solver.get_wavefunctions(kx, verbose=False)
+            #split wave into modes
+        splitter = splitters.ModeSplitter(inwave, modewaves)
+        cm = splitter.get_coupling_constants()
+        wffull = splitter.get_wavefunction(cm)
+        #get wavefunction at exit surface
+        exitf = lambda x: wffull(x, waveguide.length)
+        #incoherently add exitf to the picture so far
+        exitvf = np.vectorize(exitf)
+        exitdata = exitvf(xv)
+        farfield = fft.fft(exitdata)
+        intensity = intensity + np.abs(fft.fftshift(farfield))**2
+        if verbose:
+            pb.update(i + 1)
+            #now plot it
+    (fig, ax) = plotting.setup_figure_standard(
+        title=ur'Propagated Intensity',
+        xlabel=u'Intensity at screen (arbitrary units)',
+        ylabel=u'Relative transverse distance on screen (m)')
+    ax.plot(xv, intensity, color='blue', linestyle='-', marker=None, antialiased=True)
+    ax.set_xlim((-waveguide.slab_gap, waveguide.slab_gap))
+    ax.set_ylim((np.min(intensity) - 0.1 * np.abs(np.min(intensity)),
+                 np.max(intensity) + 0.1 * np.abs(np.max(intensity))))
+    plotting.shade_waveguide(ax, waveguide.slab_gap)
+
+    #Consider only the rightmost 4/5ths when setting the intensity
+    #lowest = np.min(intensity[:, 360:])
+    #highest = np.max(intensity[:, 360:])
+
+    #pcm = ax.pcolor(X, Y, intensity, cmap=matplotlib.cm.jet)
+    #ax.get_figure().colorbar(pcm, ax=ax, use_gridspec=True)
+    #ax.set_xlim((0, waveguide.length))
+    #ax.set_ylim((-waveguide.slab_gap, waveguide.slab_gap))
+
+    #bang down a slightly different guideline for the waveguide limits
+    #topr = Rectangle((0, waveguide.slab_gap / 2), waveguide.length, waveguide.slab_gap / 2, hatch='\\', fill=False)
+    #bottomr = Rectangle((0, -waveguide.slab_gap), waveguide.length, waveguide.slab_gap / 2, hatch='/', fill=False)
+    #ax.add_patch(topr)
+    #ax.add_patch(bottomr)
+    plotting.save_figure(fig, unicode(out_file))
+    #save the data too
+    sio.savemat(out_file + '.mat', {'intensity': intensity, 'xv' : xv})

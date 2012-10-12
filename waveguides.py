@@ -157,6 +157,8 @@ class PlanarWaveguideInterp(PlanarWaveguide):
             self.cladding_data = np.array(rows)
 
             #Make an interpolating function
+            #Zero is a problem
+            self.cladding_data[:,1:] = self.cladding_data[:,1:] + 1e-20
             linearised_data = np.log(self.cladding_data)
             self.coeff_linear_vector = np.polyfit(linearised_data[:,0], linearised_data[:,1:], 1)
         else:
@@ -171,7 +173,7 @@ class PlanarWaveguideInterp(PlanarWaveguide):
             logx = np.log(wavelength)
             logd = self.coeff_linear_vector[0, 0] * logx + self.coeff_linear_vector[1, 0]
             logb = self.coeff_linear_vector[0, 1] * logx + self.coeff_linear_vector[1, 1]
-            return 1 - np.exp(logd) + np.exp(logb) * 1j
+            return 1 - (np.exp(logd)-1e-20) + (np.exp(logb)-1e-20) * 1j
         except NameError:
             return self.i_cladding_index #not doing anything fancy with wavelength
 

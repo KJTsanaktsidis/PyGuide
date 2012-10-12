@@ -116,7 +116,7 @@ def save_figure(fig, filename):
                 label.set_size(10)
 
     fig.subplots_adjust()
-    fig.tight_layout()
+    #fig.tight_layout()
     c = FigureCanvas(fig)
     c.print_figure(filename, dpi=300)
 
@@ -156,7 +156,7 @@ def plot_wavefunction(reax, imax, wf, slabGap, colours=('blue', 'green')):
 
     #we need labels for this too
     reax.legend(loc='upper left', prop={'size' : 10})
-    imax.legend(loc='upper left', prop={'size' : 10})
+    #imax.legend(loc='upper left', prop={'size' : 10})
 
     reax.set_xlim((-slabGap, slabGap))
     imax.set_xlim((-slabGap, slabGap))
