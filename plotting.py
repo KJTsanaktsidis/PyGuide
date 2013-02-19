@@ -156,7 +156,7 @@ def plot_wavefunction(reax, imax, wf, slabGap, colours=('blue', 'green')):
 
     #we need labels for this too
     reax.legend(loc='upper left', prop={'size' : 10})
-    #imax.legend(loc='upper left', prop={'size' : 10})
+    imax.legend(loc='upper left', prop={'size' : 10})
 
     reax.set_xlim((-slabGap, slabGap))
     imax.set_xlim((-slabGap, slabGap))
@@ -165,6 +165,8 @@ def plot_wavefunction(reax, imax, wf, slabGap, colours=('blue', 'green')):
 
     shade_waveguide(reax, slabGap)
     shade_waveguide(imax, slabGap)
+
+    return {'x' : x, 'Re' : rey, 'Im' : imy}
 
 def plot_intensity(ax, wf, slabGap, colour='blue', label=''):
     """
@@ -196,6 +198,8 @@ def plot_intensity(ax, wf, slabGap, colour='blue', label=''):
         ax.set_ylim((min(y) - 0.1 * abs(min(y)), max(y) + 0.1 * abs(max(y))))
         shade_waveguide(ax, slabGap)
 
+    return {'x' : x, 'Intensity' : y}
+
 def plot_poynting_vector(ax, wf, slabGap, colour='blue'):
     """
     This method plots the poynting vector of wf to ax, using a stable algorithm that does not involve
@@ -224,6 +228,7 @@ def plot_poynting_vector(ax, wf, slabGap, colour='blue'):
     ax.set_xlim((-slabGap, slabGap))
     ax.set_ylim((min(y) - 0.1 * abs(min(y)), max(y) + 0.1 * abs(max(y))))
     shade_waveguide(ax, slabGap)
+    return {'x' : x, 'Poynting' : y}
 
 def plot_intensity_map(ax, wf, slabGap, z):
     """
@@ -254,6 +259,7 @@ def plot_intensity_map(ax, wf, slabGap, z):
     bottomr = Rectangle((z[0], -slabGap), z[1]-z[0], slabGap/2, hatch='/', fill=False)
     ax.add_patch(topr)
     ax.add_patch(bottomr)
+    return (X,Y,Z)
 
 
 

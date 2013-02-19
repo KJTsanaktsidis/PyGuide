@@ -83,8 +83,9 @@ def ms_plot_wavefunctions(waveguide, wavelength, out_file, verbose=False, modes=
         #fig, reax) = plotting.setup_figure_standard(title=u'Wavefunction for n=%i mode' % mode,
             xlabel=u'Distance accross waveguide (m)',
             ylabel=u'Wavefunction (arbitrary units)')
-        plotting.plot_wavefunction(reax, reax, wavef, waveguide.slab_gap)
+        d = plotting.plot_wavefunction(reax, imax, wavef, waveguide.slab_gap)
         plotting.save_figure(fig, fname)
+        sio.savemat(fname + '.mat', d)
 
     ms_execute_permode(f, out_file, modes, kxs, verbose=verbose)
 
@@ -127,14 +128,21 @@ def ms_plot_intensities(waveguide, wavelength, out_file, verbose=False, modes=()
         colours = ['blue', 'orange', 'green', 'purple', 'grey', 'lime', 'cyan', 'yellow', 'black', 'navy', 'teal']
         colours.reverse()
         ax.hold(True)
+        d = []
         for (wf, lbl) in zip(wavefs_propagated, labels):
-            plotting.plot_intensity(ax, wf, waveguide.slab_gap, colour=colours.pop(), label=lbl)
+            d.append(plotting.plot_intensity(ax, wf, waveguide.slab_gap, colour=colours.pop(), label=lbl))
         ax.hold(False)
 
         if len(dists) != 1:
             ax.legend(loc='upper left', prop={'size' : 10})
 
         plotting.save_figure(fig, fname)
+        i = 1
+        for data in d:
+            sio.savemat(fname + str(i) + '.mat',data)
+            i += 1
+
+
 
     ms_execute_permode(f, out_file, modes, kxs, verbose=verbose)
 
@@ -161,8 +169,9 @@ def ms_plot_poynting(waveguide, wavelength, out_file, verbose=False, modes=()):
         (fig, ax) = plotting.setup_figure_standard(title=u'Poynting vector for n=%i mode' % mode,
             xlabel=u'Distance accross waveguide (m)',
             ylabel=u'Energy flow (right is +)')
-        plotting.plot_poynting_vector(ax, wf, waveguide.slab_gap)
+        d = plotting.plot_poynting_vector(ax, wf, waveguide.slab_gap)
         plotting.save_figure(fig, fname)
+        sio.savemat(fname + '.mat', d)
     ms_execute_permode(f, out_file, modes=modes, kx=kxs, verbose=verbose)
 
 def ms_plot_argand(waveguide, wavelength, out_file, verbose=False, modes=()):
@@ -305,6 +314,7 @@ def sp_plot_total_coupling(waveguide, wavelength, out_file, verbose=False):
         ylabel=u'Intensity Coupled')
     ax.plot(angs, intensity)
     plotting.save_figure(fig, out_file)
+    sio.savemat(out_file + '.mat', {'angs' : angs, 'Intensity' : intensity})
 
 def sp_plot_coupled_map(waveguide, wavelength, angle, zlimits, out_file, verbose=False):
     """
@@ -342,8 +352,9 @@ def sp_plot_coupled_map(waveguide, wavelength, angle, zlimits, out_file, verbose
         title=ur'Intensity for incidence angle %f rads' % angle,
         xlabel=u'Longitudinal distance accross waveguide (m)',
         ylabel=u'Transverse distance accross waveguide (m)')
-    plotting.plot_intensity_map(ax, wffull, waveguide.slab_gap, zlimits)
+    (X,Y,Z) = plotting.plot_intensity_map(ax, wffull, waveguide.slab_gap, zlimits)
     plotting.save_figure(fig, unicode(out_file))
+    sio.savemat(out_file + '.mat', {'inten' : Z, 'X' : X, 'Y' : Y})
 
 def modesolver_find_kx(waveguide, wavelength, verbose):
     """This function is responsible for implementing modesolver --wavevectors behaviour
